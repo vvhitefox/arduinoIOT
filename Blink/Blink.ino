@@ -1,88 +1,39 @@
-#include <Wire.h>
-
-
-#include <SoftwareSerial.h>
-SoftwareSerial SoftSerial(2, 3);
-
-void setupPP() {
-    Serial.begin(9600);
-    SoftSerial.begin(9600);                 // the SoftSerial baud rate
-    Serial.println("heart rate sensor:");
-    Wire.begin();
-}
-void loopHEART() {
-  //loopGPS();
-  return;
-    Wire.requestFrom(0xA0 >> 1, 1);    // request 1 bytes from slave device
-    //loopGPS();
-    while(Wire.available()) {          // slave may send less than requested
-        unsigned char c = Wire.read();   // receive heart rate value (a byte)
-        Serial.println(c, DEC);         // print heart rate value
-    }
-    delay(500);
-}
-
-unsigned char buffer[64];                   // buffer array for data receive over serial port
-int count=0;                                // counter for buffer array
-
-void loopGPS()
-{
-    if (SoftSerial.available())                     // if date is coming from software serial port ==> data is coming from SoftSerial shield
-    {
-        while(SoftSerial.available())               // reading data into char array
-        {
-            buffer[count++]=SoftSerial.read();      // writing data into array
-            if(count == 64)break;
-        }
-        Serial.write(buffer,count);                 // if no data transmission ends, write buffer to hardware serial port
-        clearBufferArray();                         // call clearBufferArray function to clear the stored data from the array
-        count = 0;                                  // set counter of while loop to zero 
-    }
-    if (Serial.available())                 // if data is available on hardware serial port ==> data is coming from PC or notebook
-    SoftSerial.write(Serial.read());        // write it to the SoftSerial shield
-}
-void loopPP(){
-  loopHEART();
-  loopGPS();
-}
-
-
-void clearBufferArray()                     // function to clear buffer array
-{
-    for (int i=0; i<count;i++)
-    {
-        buffer[i]=NULL;
-    }                      // clear all index of array with command NULL
-}
-
 /*
 Bluetooth HM13 Demo Code
 2014 Copyright (c) Seeed Technology Inc.  All right reserved.
+
 Author: Jacky Zhang
+
 This demo code is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
 version 2.1 of the License, or (at your option) any later version.
+
 This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
+
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
 For more details about the product please check http://www.seeedstudio.com/depot/
+
 */
 
 /* Upload this sketch into Arduino Uno and press reset*/
 
+#include <SoftwareSerial.h>   //Software Serial Port
 #define RxD 2
 #define TxD 3
 
-#define MASTER 0    //change this macro to define the Bluetooth as Master or not 
+#define MASTER 1    //change this macro to define the Bluetooth as Master or not 
 
 SoftwareSerial blueToothSerial(RxD,TxD);//the software serial port 
 
 char recv_str[100];
+int count = 0;
 
 void setup() 
 { 
@@ -92,6 +43,7 @@ void setup()
     Serial.println("\r\nPower on!!");
     if(setupBlueToothConnection() != 0) while(1);   //initialize Bluetooth
     //this block is waiting for connection was established.
+    Serial.println("connection in progress...\r\n");
     while(1)
     {
         if(recvMsg(1000) == 0)
@@ -108,31 +60,17 @@ void setup()
 
 void loop() 
 { 
-    #if MASTER  //central role
-    //in master mode, the bluetooth send message periodically. 
-    delay(400);
-    Serial.println("send: hi");
-    blueToothSerial.print("hi");
-    delay(100);
-    //get any message to print
-    if(recvMsg(1000) == 0)
-    {
-        Serial.print("recv: ");
-        Serial.print((char *)recv_str);
-        Serial.println("");
-    }
-    #else   //peripheral role
-    delay(200);
-    //the slave role only send message when received one.
-    if(recvMsg(1000) == 0)
-    {
-        Serial.print("recv: ");
-        Serial.print((char *)recv_str);
-        Serial.println("");
-        Serial.println("send: hello");
-        blueToothSerial.print("hello");//return back message
-    }
-    #endif
+  delay(400);
+  Serial.println(count);
+  blueToothSerial.print(count);
+  delay(100);
+  count ++;
+  if(recvMsg(1000) == 0)
+  {
+      Serial.print("recv: ");
+      Serial.print((char *)recv_str);
+      Serial.println("");
+  }
 }
 
 //used for compare two string, return 0 if one equals to each other
