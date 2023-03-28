@@ -6,27 +6,27 @@
 #define NOT_CLEAR_STEP  false
 
 SoftwareSerial blueToothSerial(2,3); // init bluetooth
+
 LSM6DS3 pedometer(I2C_MODE, 0x6A);   // init pedometer
-unsigned char buffer[64];            // gps buffer
 
 char recv_str[100];                  // msg received by raspberry
 int trame = 0;
 
 void setup() 
 { 
-    Serial.begin(115200);
+  Serial.begin(9600);
     
-    blueToothSerial.begin(9600);
-    pinMode(2, INPUT);
-    pinMode(3, OUTPUT);
+  blueToothSerial.begin(9600);
+  pinMode(2, INPUT);
+  pinMode(3, OUTPUT);
 
-    Wire.begin();
-    pedometer.begin();
+  Wire.begin();
+  pedometer.begin();
 
-    if (0 != config_pedometer(NOT_CLEAR_STEP)) {
-      Serial.println("Configure pedometer fail!");
-    }
-    Serial.println("End setup");
+  if (0 != config_pedometer(NOT_CLEAR_STEP)) {
+    Serial.println("Configure pedometer fail!");
+  }
+  Serial.println("End setup");
 } 
 
 void loop() 
@@ -34,11 +34,10 @@ void loop()
   uint8_t dataByte = 0;
   uint16_t stepCount = 0;
 
-  delay(1000);
   Wire.requestFrom(0xA0 >> 1, 1);
 
   // heart rate
-  unsigned char c = Wire.read();
+  unsigned char heart_rate = Wire.read();
 
   // pedometer
   pedometer.readRegister(&dataByte, LSM6DS3_ACC_GYRO_STEP_COUNTER_H);
@@ -47,10 +46,12 @@ void loop()
   pedometer.readRegister(&dataByte, LSM6DS3_ACC_GYRO_STEP_COUNTER_L);
   stepCount |=  dataByte;
 
-  String json = "{\"step\":"+ String(stepCount) +",\"heart_rate\":"+ String(c)+"}\0"; 
+  String json = "{\"step\":"+ String(stepCount) +",\"heart_rate\":"+ String(heart_rate)+"}"; 
   Serial.println(trame++);
   Serial.println(json);
-  blueToothSerial.println(json);
+  delay(200);
+  blueToothSerial.println(json); 
+            
 }
 
 //receive message from Bluetooth with time out
@@ -108,12 +109,4 @@ int config_pedometer(bool clearStep) {
     errorAccumulator += pedometer.writeRegister(LSM6DS3_ACC_GYRO_INT1_CTRL, 0x10);
 
     return errorAccumulator;
-}
-
-void clearBufferArray(int count)
-{
-    for (int i=0; i<count;i++)
-    {
-      buffer[i]=NULL;
-    }
 }
